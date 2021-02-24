@@ -4,9 +4,10 @@
 # set colours
 # ~~~~~~~~~~~~~~~~~~~~~~~
 
-red='\033[1;31m'  # echo Red
-bold='\033[1;37m' # echo White Bold
-nc='\033[0m'      # echo No Colour
+red='\033[1;31m'   # red
+green='\033[1;32m' # Green
+bold='\033[1;37m'  # white bold
+nc='\033[0m'       # no colour
 
 # ~~~~~~~~~~~~~~~~~~~~~~~
 # get parameters from user
@@ -14,75 +15,79 @@ nc='\033[0m'      # echo No Colour
 
 helpFunction() {
 	echo ""
-	echo -e "${bold}Usage: $0 -s <service> <-l/-u>"
+	echo -e "${bold}Usage: $0 -s <service> -f <load/unload>"
 	echo -e "\t-s ervice: Service to load or unload, jamf, sophos, nomad"
-	echo -e "\t-l oad: Load the service"
-	echo -e "\t-u nload: unload the services${nc}"
+	echo -e "\t-f unction: load or unload the services${nc}"
 	exit 1
 }
 
-while getopts "s:lu" opt; do
+while getopts "s:f:" opt; do
 	case "${opt}" in
 	s) SERVICE="${OPTARG}" ;;
-	l) FUNCTION="load" ;;
-	u) FUNCTION="unload" ;;
+	f) FUNCTION="${OPTARG}" ;;
 	?) helpFunction ;;
 	esac
 done
+
 # print helpFunction in case parameters are empty
 if [ -z "${SERVICE}" ] || [ -z "${FUNCTION}" ]; then
-	echo -e "${red}Some or all of the parameters are empty${nc}"
+	echo -e "${red}>>> ERROR: ${bold}Some or all of the parameters are empty${nc}"
 	helpFunction
 fi
 
 # ~~~~~~~~~~~~~~~~~~~~~~~
-# validate supplied parameters
-# ~~~~~~~~~~~~~~~~~~~~~~~
-
-if ! { [ "${SERVICE}" = "sophos" ] || [ "${SERVICE}" = "jamf" ] || [ "${SERVICE}" = "nomad" ]; }; then
-	echo -e "${red}Error: ${SERVICE} is not a supported service${nc}"
-	echo -e "${bold}Supported services: sophos, jamf and nomad${nc}"
-	exit 1
-fi
-
-# ~~~~~~~~~~~~~~~~~~~~~~~
-# loader function
+# define loader function
 # ~~~~~~~~~~~~~~~~~~~~~~~
 
 function loader() {
-	echo -e "${bold}${FUNCTION}ing ${SERVICE}${nc}"
+	echo -e "${green}>>> ${bold}${FUNCTION}ing ${i}${nc}"
 	for i in ${LIST}; do
-		launchctl "${FUNCTION}" -w "${i}" &>/dev/null
+		launchctl "${FUNCTION}" -w ${i} &>/dev/null
 	done
 
 	for i in ${LIST_SUDO}; do
-		sudo launchctl "${FUNCTION}" -w "${i}" &>/dev/null
+		sudo launchctl "${FUNCTION}" -w ${i} &>/dev/null
 	done
+	echo ""
 }
 
-# ~~~~~~~~~~~~~~~~~~~~~~~
-# startup
-# ~~~~~~~~~~~~~~~~~~~~~~~
+for i in ${SERVICE}; do
 
-if [ "${SERVICE}" = "sophos" ]; then
-	LIST=$(find /Library/LaunchAgents -name "*sophos*")
-	LIST_SUDO=$(find /Library/LaunchDaemons -name "*sophos*")
-	loader
-	echo -e "${bold}Killing all Sophos processes${nc}"
-	pgrep "[sS]ophos" | sudo xargs kill
-fi
+	# ~~~~~~~~~~~~~~~~~~~~~~~
+	# validate supplied parameters
+	# ~~~~~~~~~~~~~~~~~~~~~~~
 
-if [ "${SERVICE}" = "jamf" ]; then
-	LIST=$(find /Library/LaunchAgents -name "*jamf*")
-	LIST_SUDO=$(find /Library/LaunchDaemons -name "*jamf*")
-	sudo rm /Library/Application\ Support/JAMF/.jmf_settings.json
-	loader
-fi
+	if ! { [ ${i} = "sophos" ] || [ ${i} = "jamf" ] || [ ${i} = "nomad" ]; }; then
+		echo -e "${red}>>> ERROR: ${bold}${i} is not a supported service"
+		echo -e "Supported services: sophos, jamf and nomad${nc}"
+	fi
 
-if [ "${SERVICE}" = "nomad" ]; then
-	LIST=$(
-		find /Library/LaunchAgents -name "*NoMAD*"
-		find /Users/hydea22/Library/LaunchAgents -name "*NoMAD*"
-	)
-	loader
-fi
+	# ~~~~~~~~~~~~~~~~~~~~~~~
+	# startup
+	# ~~~~~~~~~~~~~~~~~~~~~~~
+
+	if [ ${i} = "sophos" ]; then
+		LIST=$(find /Library/LaunchAgents -name "*sophos*")
+		LIST_SUDO=$(find /Library/LaunchDaemons -name "*sophos*")
+		loader
+		echo -e "${green}>>> ${bold}Killing all Sophos processes${nc}"
+		pgrep "[sS]ophos" | sudo xargs kill
+	fi
+
+	if [ ${i} = "jamf" ]; then
+		LIST=$(find /Library/LaunchAgents -name "*jamf*")
+		LIST_SUDO=$(find /Library/LaunchDaemons -name "*jamf*")
+		[[ -f /Library/Application\ Support/JAMF/.jmf_settings.json ]] &&
+			sudo rm /Library/Application\ Support/JAMF/.jmf_settings.json
+		loader
+	fi
+
+	if [ ${i} = "nomad" ]; then
+		LIST=$(
+			find /Library/LaunchAgents -name "*NoMAD*"
+			find /Users/hydea22/Library/LaunchAgents -name "*NoMAD*"
+		)
+		loader
+	fi
+
+done
