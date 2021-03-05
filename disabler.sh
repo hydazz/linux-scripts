@@ -66,8 +66,13 @@ for i in ${service}; do
 	# ~~~~~~~~~~~~~~~~~~~~~~~
 
 	if ! { [ "${i}" = "sophos" ] || [ "${i}" = "jamf" ] || [ "${i}" = "nomad" ]; }; then
-		echo -e "${red}>>> ERROR: ${bold}${i} is not a supported service"
-		echo -e "Supported services: sophos, jamf, nomad${nc}"
+		if [ -z "${unknown}" ]; then
+			unknown="${i}"
+			number="1"
+		else
+			unknown="${unknown}, ${i}"
+			number="$((${number} + 1))"
+		fi
 	fi
 
 	# ~~~~~~~~~~~~~~~~~~~~~~~
@@ -116,3 +121,11 @@ for i in ${service}; do
 		loader
 	fi
 done
+
+if [ "${number}" = "1" ]; then
+	echo -e "${red}>>> ERROR: ${bold}${unknown} is not a supported service"
+	echo -e "Supported services: sophos, jamf, nomad${nc}"
+elif [ "${number}" -gt "1" ]; then
+	echo -e "${red}>>> ERROR: ${bold}${unknown} are not supported services"
+	echo -e "Supported services: sophos, jamf, nomad${nc}"
+fi
