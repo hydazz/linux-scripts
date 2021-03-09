@@ -71,7 +71,7 @@ for i in ${service}; do
 			number="1"
 		else
 			unknown="${unknown}, ${i}"
-			number="$((${number} + 1))"
+			number="((number + 1))"
 		fi
 	fi
 
@@ -125,7 +125,7 @@ done
 if [ "${number}" = "1" ]; then
 	echo -e "${red}>>> ERROR: ${bold}${unknown} is not a supported service"
 	echo -e "Supported services: sophos, jamf, nomad${nc}"
-elif [ "${number}" -gt "1" ]; then
+elif [[ "${number}" -gt "1" ]]; then
 	echo -e "${red}>>> ERROR: ${bold}${unknown} are not supported services"
 	echo -e "Supported services: sophos, jamf, nomad${nc}"
 fi
