@@ -65,7 +65,7 @@ for i in ${service}; do
 	# validate supplied parameters
 	# ~~~~~~~~~~~~~~~~~~~~~~~
 
-	if ! { [ "${i}" = "sophos" ] || [ "${i}" = "jamf" ] || [ "${i}" = "nomad" ]; }; then
+	if ! { [ "${i}" = "sophos" ] || [ "${i}" = "jamf" ] || [ "${i}" = "nomad" ] || [ "${i}" = "familyzone" ]; }; then
 		if [ -z "${unknown}" ]; then
 			unknown="${i}"
 			number="1"
@@ -83,10 +83,14 @@ for i in ${service}; do
 		clserv="Sophos"
 		list=$(find /Library/LaunchAgents -iname "*sophos*")
 		list_sudo=$(find /Library/LaunchDaemons -iname "*sophos*")
-		loader
-		if [ "${function}" = "unload" ]; then
-			echo -e "${green}>>> ${bold}Killing all Sophos processes${nc}"
-			pgrep "[sS]ophos" | sudo xargs kill
+		if [ -n "${list}" ] || [ -n "${list_sudo}" ]; then
+			loader
+			if [ "${function}" = "unload" ]; then
+				echo -e "${green}>>> ${bold}Killing all Sophos processes${nc}"
+				pgrep "[sS]ophos" | sudo xargs kill
+			fi
+		else
+			echo -e "${red}>>> ERROR: ${bold}${clserv} is not installed${nc}"
 		fi
 	fi
 
@@ -94,9 +98,13 @@ for i in ${service}; do
 		clserv="JAMF"
 		list=$(find /Library/LaunchAgents -iname "*jamf*")
 		list_sudo=$(find /Library/LaunchDaemons -iname "*jamf*")
-		[[ -f /Library/Application\ Support/JAMF/.jmf_settings.json ]] &&
-			sudo rm /Library/Application\ Support/JAMF/.jmf_settings.json
-		loader
+		if [ -n "${list}" ] || [ -n "${list_sudo}" ]; then
+			[[ -f /Library/Application\ Support/JAMF/.jmf_settings.json ]] &&
+				sudo rm /Library/Application\ Support/JAMF/.jmf_settings.json
+			loader
+		else
+			echo -e "${red}>>> ERROR: ${bold}${clserv} is not installed${nc}"
+		fi
 	fi
 
 	if [ "${i}" = "nomad" ]; then
@@ -105,7 +113,11 @@ for i in ${service}; do
 			find /Library/LaunchAgents -iname "*nomad*"
 			find /Users/hydea22/Library/LaunchAgents -iname "*nomad*"
 		)
-		loader
+		if [ -n "${list}" ] || [ -n "${list_sudo}" ]; then
+			loader
+		else
+			echo -e "${red}>>> ERROR: ${bold}${clserv} is not installed${nc}"
+		fi
 	fi
 
 	if [ "${i}" = "familyzone" ]; then
@@ -118,7 +130,11 @@ for i in ${service}; do
 			find /Library/LaunchDaemons -iname "*familyzone*"
 			find /Library/LaunchDaemons -iname "*fz*"
 		)
-		loader
+		if [ -n "${list}" ] || [ -n "${list_sudo}" ]; then
+			loader
+		else
+			echo -e "${red}>>> ERROR: ${bold}${clserv} is not installed${nc}"
+		fi
 	fi
 done
 
